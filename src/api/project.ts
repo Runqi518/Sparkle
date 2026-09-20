@@ -7,6 +7,8 @@ const projects: ProjectResponse[] = [
     name: "Sparkle Demo",
     industry: "互联网",
     nodesCount: 0,
+    mode: "free",
+    canvas: { nodes: [], edges: [] },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -21,6 +23,8 @@ export async function createProject(data: CreateProjectInput): Promise<ProjectRe
     name: data.name,
     industry: data.industry,
     nodesCount: 0,
+    mode: "free",
+    canvas: { nodes: [], edges: [] },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

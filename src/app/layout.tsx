@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Redvision",
-  description: "Redvision - AI Video Creation Workspace",
+  title: "Sparkle",
+  description: "Sparkle - AI Video Creation Workspace",
 };
 
 export default function RootLayout({

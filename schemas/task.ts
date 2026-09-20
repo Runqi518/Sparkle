@@ -5,6 +5,7 @@ export const NodeTypeSchema = z.enum(["image", "video", "text", "ai_generation"]
 
 // AI 生成请求体结构
 export const GenerationRequestSchema = z.object({
+  projectId: z.string().optional(),
   nodeId: z.string(),
   type: NodeTypeSchema,
   prompt: z.string().min(1, "Prompt 不能为空"),

@@ -1,173 +1,121 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Plus, Image as ImageIcon, Video, Type, Sparkles, Folder, Grid, PlaySquare, GraduationCap, LayoutTemplate, Box } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import {
+  addEdge,
+  Background,
+  Connection,
+  Controls,
+  Edge,
+  Node,
+  ReactFlow,
+  ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
+} from "@xyflow/react";
+import { Box, FileText, Image as ImageIcon, Plus, Save, Sparkles, Video } from "lucide-react";
+import "@xyflow/react/dist/style.css";
 import { TopNav } from "@/components/TopNav";
 import { CustomNode } from "@/components/canvas/CustomNode";
-import { 
-  ReactFlow, 
-  Background, 
-  Controls, 
-  useNodesState, 
-  useEdgesState, 
-  addEdge, 
-  Connection, 
-  Edge, 
-  Node,
-  useReactFlow,
-  ReactFlowProvider
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 
-let id = 0;
-const getId = () => `node_${id++}`;
 const nodeTypes = { custom: CustomNode };
 
-function Flow() {
-  const [showStartMenu, setShowStartMenu] = useState(true);
+type Project = {
+  id: string;
+  name: string;
+  industry: string;
+  nodesCount: number;
+  canvas: { nodes: Node[]; edges: Edge[] };
+};
+
+function Canvas() {
+  const { id } = useParams<{ id: string }>();
+  const [project, setProject] = useState<Project | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  useEffect(() => {
+    void (async () => {
+      const response = await fetch(`/api/projects/${id}`);
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "无法加载项目");
+        return;
+      }
+      const canvasNodes = data.project.canvas.nodes.map((node: Node) => ({
+        ...node,
+        data: { ...node.data, projectId: data.project.id },
+      }));
+      setProject(data.project);
+      setNodes(canvasNodes);
+      setEdges(data.project.canvas.edges);
+    })();
+  }, [id, setEdges, setNodes]);
 
-  const addNode = (label: string, type: string, pos?: {x: number, y: number}) => {
-    const position = pos || { x: Math.random() * 200 + 200, y: Math.random() * 200 + 150 };
-    const newNode: Node = {
-      id: getId(),
+  const save = useCallback(async (nextNodes = nodes, nextEdges = edges) => {
+    setIsSaving(true);
+    const response = await fetch(`/api/projects/${id}/canvas`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nodes: nextNodes, edges: nextEdges }),
+    });
+    setIsSaving(false);
+    if (!response.ok) setError("保存画布失败");
+  }, [edges, id, nodes]);
+
+  const onConnect = useCallback((connection: Connection) => {
+    setEdges((currentEdges) => {
+      const nextEdges = addEdge({ ...connection, animated: true }, currentEdges);
+      void save(nodes, nextEdges);
+      return nextEdges;
+    });
+  }, [nodes, save, setEdges]);
+
+  const addNode = (nodeKind: "text" | "image" | "video") => {
+    const node: Node = {
+      id: `node_${Date.now()}`,
       type: "custom",
-      position,
-      data: { label, type },
+      position: { x: 250 + nodes.length * 40, y: 150 + nodes.length * 35 },
+      data: {
+        label: nodeKind === "text" ? "编写脚本" : nodeKind === "image" ? "生成图片" : "生成视频",
+        type: nodeKind,
+        nodeKind,
+        projectId: id,
+      },
     };
-    setNodes((nds) => [...nds, newNode]);
+    const nextNodes = [...nodes, node];
+    setNodes(nextNodes);
+    void save(nextNodes, edges);
   };
 
-  const onPaneClick = useCallback(
-    (event: React.MouseEvent | TouchEvent) => {
-      event.preventDefault();
-      if (showStartMenu) return; // Only allow when canvas is active
-      
-      const position = screenToFlowPosition({
-        x: ('clientX' in event ? event.clientX : 0),
-        y: ('clientY' in event ? event.clientY : 0),
-      });
-      // 默认生成一个图片节点
-      addNode("自由节点", "image", position);
-    },
-    [screenToFlowPosition, showStartMenu]
-  );
-
-  const handleFreeCreate = () => setShowStartMenu(false);
-
-  const handleTemplateCreate = () => {
-    setShowStartMenu(false);
-    const templateNodes: Node[] = [
-      { id: 't1', type: "custom", position: { x: 100, y: 250 }, data: { label: '商品主图', type: 'image' } },
-      { id: 't2', type: "custom", position: { x: 400, y: 250 }, data: { label: 'AI 种草视频', type: 'video' } },
-    ];
-    setNodes(templateNodes);
-    setEdges([{ id: 'e1-2', source: 't1', target: 't2', animated: true, style: { stroke: 'rgba(255,255,255,0.3)', strokeWidth: 2 } }]);
-  };
+  if (error) return <div className="h-full grid place-items-center text-sm text-pink-200">{error}</div>;
+  if (!project) return <div className="h-full grid place-items-center text-sm text-glass-muted">正在加载项目画布…</div>;
 
   return (
     <>
-      <ReactFlow 
+      <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onPaneClick={onPaneClick}
-        nodeTypes={nodeTypes}
+        onNodeDragStop={() => void save()}
         fitView
       >
-        <Background color="rgba(255,255,255,0.05)" gap={20} size={2} />
+        <Background color="rgba(255,255,255,0.06)" gap={20} size={2} />
         <Controls showInteractive={false} />
       </ReactFlow>
 
-      {/* 左侧工具栏 */}
-      {!showStartMenu && (
-        <div className="absolute left-6 top-6 glass-black p-1.5 rounded-2xl flex flex-col gap-1.5 z-10 w-16">
-          <div className="flex flex-col gap-1.5 mb-2 pb-2 border-b border-white/10">
-            <button onClick={() => addNode("生成图片", "image")} className="p-2 hover:bg-white/10 rounded-xl text-glass-muted hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <Plus className="w-5 h-5" />
-              <span className="text-[9px] font-light tracking-wider">节点</span>
-            </button>
-            <button className="p-2 hover:bg-white/10 rounded-xl text-glass-muted hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <Folder className="w-4 h-4" />
-              <span className="text-[9px] font-light tracking-wider">素材</span>
-            </button>
-          </div>
-          <div className="flex flex-col gap-1.5 pt-1 text-glass-muted">
-            <button className="p-2 hover:bg-white/10 rounded-xl hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <PlaySquare className="w-4 h-4" />
-              <span className="text-[9px] font-light tracking-wider">作品</span>
-            </button>
-            <button className="p-2 hover:bg-white/10 rounded-xl hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <Grid className="w-4 h-4" />
-              <span className="text-[9px] font-light tracking-wider">模板</span>
-            </button>
-            <button className="p-2 hover:bg-white/10 rounded-xl hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <LayoutTemplate className="w-4 h-4" />
-              <span className="text-[9px] font-light tracking-wider">项目</span>
-            </button>
-            <button className="p-2 hover:bg-white/10 rounded-xl hover:text-white transition-colors flex flex-col items-center gap-1.5">
-              <GraduationCap className="w-4 h-4" />
-              <span className="text-[9px] font-light tracking-wider">教程</span>
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* 居中弹窗 */}
-      {showStartMenu && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
-          <div className="flex items-center gap-2 text-white/70 mb-8">
-            <Sparkles className="w-4 h-4" />
-            <span className="text-xs tracking-widest font-light">选择一种创作方式</span>
-          </div>
-          
-          <div className="flex gap-5">
-            <button onClick={handleTemplateCreate} className="w-[280px] h-[120px] glass-black glass-hover rounded-3xl flex items-center p-6 gap-6 group">
-              <div className="w-12 h-12 glass-silver rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <LayoutTemplate className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-light tracking-wider text-base text-white">模板创作</h3>
-                <p className="text-[10px] text-glass-muted mt-1.5 tracking-wide">套用成熟工作流</p>
-              </div>
-            </button>
-
-            <button className="w-[280px] h-[120px] glass-black glass-hover rounded-3xl flex items-center p-6 gap-6 group">
-              <div className="w-12 h-12 glass-silver rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <PlaySquare className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-light tracking-wider text-base text-white">基础创作</h3>
-                <p className="text-[10px] text-glass-muted mt-1.5 tracking-wide">从文字、图片或视频开始</p>
-              </div>
-            </button>
-
-            <button onClick={handleFreeCreate} className="w-[280px] h-[120px] glass-pink rounded-3xl flex items-center p-6 gap-6 group">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner border border-white/30">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-medium tracking-wider text-base text-white">自由创作</h3>
-                <p className="text-[10px] text-pink-200 mt-1.5 tracking-wide">进入空白画布</p>
-              </div>
-            </button>
-          </div>
-
-          <div className="mt-14 flex items-center gap-3 text-glass-muted text-xs font-light">
-            <div className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px]">+</div>
-            点击画布，自由生成节点
-          </div>
-        </div>
-      )}
+      <div className="absolute left-6 top-6 z-10 glass-black p-2 rounded-2xl flex flex-col gap-1 border border-white/10">
+        <button onClick={() => addNode("text")} className="p-2 rounded-xl hover:bg-white/10 text-glass-muted hover:text-white flex flex-col items-center gap-1 text-[9px]"><FileText className="w-4 h-4" /><span>脚本</span></button>
+        <button onClick={() => addNode("image")} className="p-2 rounded-xl hover:bg-white/10 text-glass-muted hover:text-white flex flex-col items-center gap-1 text-[9px]"><ImageIcon className="w-4 h-4" /><span>图片</span></button>
+        <button onClick={() => addNode("video")} className="p-2 rounded-xl hover:bg-white/10 text-glass-muted hover:text-white flex flex-col items-center gap-1 text-[9px]"><Video className="w-4 h-4" /><span>视频</span></button>
+        <button onClick={() => void save()} className="p-2 rounded-xl hover:bg-white/10 text-glass-muted hover:text-white flex flex-col items-center gap-1 text-[9px] border-t border-white/10 mt-1 pt-2"><Save className="w-4 h-4" /><span>{isSaving ? "保存中" : "保存"}</span></button>
+      </div>
     </>
   );
 }
@@ -175,23 +123,19 @@ function Flow() {
 export default function ProjectCanvasPage() {
   return (
     <div className="flex flex-col h-screen w-screen absolute inset-0 z-50 bg-transparent">
-      <TopNav 
-        leftContent={
-          <div className="flex items-center gap-3 text-xs border-l border-white/10 pl-4 font-light text-white/80">
-            <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
-              <Box className="w-3 h-3 text-glass-muted" />
-              <span>宠物</span>
-            </div>
-            <span className="font-medium tracking-wide text-white">Sparkle Demo</span>
-            <span className="text-glass-muted text-[10px] tracking-wider">· 0 个节点 / 0 条链路</span>
-          </div>
-        }
-      />
+      <TopNav leftContent={<ProjectTitle />} />
       <main className="flex-1 relative">
-        <ReactFlowProvider>
-          <Flow />
-        </ReactFlowProvider>
+        <ReactFlowProvider><Canvas /></ReactFlowProvider>
       </main>
+    </div>
+  );
+}
+
+function ProjectTitle() {
+  return (
+    <div className="flex items-center gap-3 text-xs border-l border-white/10 pl-4 font-light text-white/80">
+      <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/10"><Box className="w-3 h-3 text-glass-muted" /><span>项目画布</span></div>
+      <span className="text-glass-muted text-[10px] tracking-wider flex items-center gap-1"><Sparkles className="w-3 h-3" /> 自动保存</span>
     </div>
   );
 }

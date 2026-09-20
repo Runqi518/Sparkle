@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Play, Image as ImageIcon, Video, Type, Sparkles, Loader2 } from "lucide-react";
 import { NodeProps, Handle, Position } from "@xyflow/react";
 
-export const CustomNode = ({ data }: NodeProps) => {
+export const CustomNode = ({ id, data }: NodeProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string>(String(data.resultUrl || ""));
   const [prompt, setPrompt] = useState("");
@@ -16,8 +16,9 @@ export const CustomNode = ({ data }: NodeProps) => {
       const res = await fetch("/api/tasks/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodeId: "mock-id",
+          body: JSON.stringify({
+          projectId: String(data.projectId || ""),
+          nodeId: id,
           type: data.type || "image",
           prompt,
         }),
