@@ -1,69 +1,203 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { Plus, ChevronLeft, ChevronRight, LayoutGrid, Type, Image as ImageIcon, TrendingUp } from "lucide-react";
+import { TopNav } from "@/components/TopNav";
+import { CreateProjectModal } from "@/components/CreateProjectModal";
+import Link from "next/link";
+
+const FILTERS = ["全部", "全行业", "教育培训", "3c及电器", "互联网", "美妆", "母婴", "宠物"];
+
+const CAROUSEL_ITEMS = [
+  { id: 'idea', label: 'Idea', icon: Type, color: 'text-white/80', gradient: 'from-white/10' },
+  { id: 'asset', label: 'Asset', icon: ImageIcon, color: 'text-white/90', gradient: 'from-pink-500/10' },
+  { id: 'growth', label: 'Growth', icon: TrendingUp, color: 'text-pink-300/90', gradient: 'from-pink-400/10' }
+];
+
+export default function HomePage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("全部");
+  const [centerIndex, setCenterIndex] = useState(1);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex flex-col h-full overflow-hidden bg-transparent">
+      <TopNav />
+      
+      <main className="flex-1 overflow-y-auto px-8 py-8 relative">
+        
+        {/* Hero Poster Area */}
+        <section className="relative w-full h-[480px] mb-14 rounded-3xl border border-white/5 overflow-hidden flex flex-col glass-black shadow-2xl group">
+          {/* Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 group-hover:scale-105 opacity-50"
+            style={{ backgroundImage: "url('/p2.jpg')" }}
+          />
+          
+          {/* Dark Overlays for Readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/90" />
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+
+          {/* Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_40%,black,transparent)] pointer-events-none" />
+
+          {/* Top: Tiny header */}
+          <div className="pt-8 px-10 relative z-10 flex-shrink-0">
+            <div className="text-[9px] text-white/40 tracking-[0.4em] uppercase font-light">
+              Generate. Compose. Monetize.
+            </div>
+          </div>
+
+          {/* Middle: Main Visual Flow (Shrunk) */}
+          <div className="flex-1 flex items-center justify-center relative z-10 w-full px-10 mt-4">
+            <div className="w-full max-w-2xl h-40 relative flex justify-center items-center perspective-1000">
+               
+               {/* Connecting track background */}
+               <div className="absolute left-[15%] right-[15%] top-1/2 -translate-y-1/2 border-t border-dashed border-white/10 z-0" />
+
+               {CAROUSEL_ITEMS.map((item, index) => {
+                 const offset = (index - centerIndex + 3) % 3;
+                 
+                 // Determine positioning based on offset (0: center, 1: right, 2: left)
+                 let transformClass = "";
+                 let glassClass = "";
+                 let zIndex = "z-10";
+
+                 if (offset === 0) {
+                   // Center
+                   transformClass = "translate-x-0 scale-110 opacity-100";
+                   glassClass = "glass-silver border-white/30 shadow-[0_0_50px_rgba(255,255,255,0.1)]";
+                   zIndex = "z-30";
+                 } else if (offset === 1) {
+                   // Right
+                   transformClass = "translate-x-44 scale-[0.85] opacity-50 hover:opacity-80 hover:scale-[0.9]";
+                   glassClass = "glass-black border-white/10 hover:border-white/20 hover:shadow-2xl";
+                   zIndex = "z-10 cursor-pointer";
+                 } else if (offset === 2) {
+                   // Left
+                   transformClass = "-translate-x-44 scale-[0.85] opacity-50 hover:opacity-80 hover:scale-[0.9]";
+                   glassClass = "glass-black border-white/10 hover:border-white/20 hover:shadow-2xl";
+                   zIndex = "z-10 cursor-pointer";
+                 }
+
+                 return (
+                   <div 
+                     key={item.id}
+                     onClick={() => setCenterIndex(index)}
+                     className={`absolute w-36 h-24 rounded-2xl border flex flex-col items-center justify-center transition-all duration-700 ease-out overflow-hidden ${transformClass} ${glassClass} ${zIndex}`}
+                   >
+                     {/* Background Glow (only visible when centered) */}
+                     <div className={`absolute inset-0 bg-gradient-to-tr ${item.gradient} to-transparent transition-opacity duration-700 ${offset === 0 ? 'opacity-60' : 'opacity-0'}`} />
+                     
+                     <item.icon className={`w-6 h-6 mb-2 relative z-10 transition-colors duration-700 ${offset === 0 ? item.color : 'text-white/40'}`} />
+                     <span className={`text-[12px] font-medium tracking-wider uppercase relative z-10 transition-colors duration-700 ${offset === 0 ? 'text-white' : 'text-white/40'}`}>
+                       {item.label}
+                     </span>
+                   </div>
+                 );
+               })}
+
+            </div>
+          </div>
+
+          {/* Bottom: Titles and Steps (Enlarged Title) */}
+          <div className="pb-12 px-12 relative z-10 flex-shrink-0 flex justify-between items-end">
+            <div>
+              <h1 className="text-6xl font-light text-white tracking-widest mb-4 drop-shadow-2xl">AI 创意素材画布</h1>
+              <h2 className="text-2xl text-white/60 font-light tracking-[0.2em] mb-6">Boundless ideas. Tangible results.</h2>
+              
+              <div className="space-y-2 text-[11px] text-white/40 font-light tracking-widest">
+                <p>一句话，生成图文与视频素材</p>
+                <p>一张画布，编排千种创意组合</p>
+                <p>一键触达，让素材直接商业化</p>
+              </div>
+            </div>
+            
+            {/* 3 steps bar (Gradient Text) */}
+            <div className="flex items-center gap-5 text-[11px] font-light tracking-[0.3em] bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-white/10 shadow-lg relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              
+              <span className="text-white/80 pl-1 relative z-10">生成</span>
+              <span className="w-4 h-px bg-white/20 relative z-10"></span>
+              <span className="text-pink-100/90 relative z-10">编排</span>
+              <span className="w-4 h-px bg-pink-300/30 relative z-10"></span>
+              <span className="bg-gradient-to-r from-pink-50 to-pink-200 bg-clip-text text-transparent font-medium pr-1 relative z-10">变现</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 我的项目 */}
+        <section className="mb-12">
+          <h2 className="text-lg font-light tracking-widest text-white mb-5">我的项目</h2>
+          <div className="flex gap-5">
+            <div 
+              onClick={() => setIsModalOpen(true)}
+              className="w-56 h-36 glass-black glass-hover rounded-2xl flex flex-col items-center justify-center cursor-pointer group"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3 group-hover:bg-white/10 transition-colors">
+                <Plus className="w-5 h-5 text-white/80" />
+              </div>
+              <span className="font-light text-sm text-white/90 tracking-wide">开始创作</span>
+              <div className="mt-2 text-[10px] text-pink-300 flex items-center gap-1 font-medium bg-pink-500/10 px-2 py-0.5 rounded-full border border-pink-500/20">
+                <Plus className="w-3 h-3" /> 新建项目
+              </div>
+            </div>
+
+            <Link href="/project/1" className="w-56 h-36 glass-black glass-hover rounded-2xl flex flex-col p-4 relative group overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10" />
+              <div className="flex-1 flex justify-center items-center z-10">
+                <LayoutGrid className="w-7 h-7 text-white/40 group-hover:text-white/80 transition-colors" />
+              </div>
+              <div className="flex justify-between items-center text-[10px] mt-3 z-10">
+                <span className="px-2 py-1 glass-silver rounded font-medium tracking-wider">宠物</span>
+                <span className="text-glass-muted">2026/09/20</span>
+              </div>
+            </Link>
+          </div>
+        </section>
+
+        {/* 作品集 */}
+        <section>
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="text-lg font-light tracking-widest text-white flex-shrink-0">作品集</h2>
+            <div className="flex-1 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {FILTERS.map(f => (
+                <button 
+                  key={f} 
+                  onClick={() => setActiveFilter(f)}
+                  className={`px-4 py-1.5 rounded-full text-xs transition-all duration-300 ${
+                    activeFilter === f 
+                      ? 'glass-silver' 
+                      : 'bg-white/5 border border-transparent text-glass-muted hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button className="flex items-center gap-1 px-3 py-1.5 glass-black glass-hover rounded-lg text-xs text-glass-muted hover:text-white">
+              排序: 按热度 <ChevronRight className="w-3 h-3 rotate-90" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+             {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="aspect-[4/3] rounded-2xl glass-black overflow-hidden relative group cursor-pointer border border-white/5 hover:border-white/20 transition-colors">
+                  <img src={`https://picsum.photos/seed/${i+20}/400/300`} className="w-full h-full object-cover opacity-60 mix-blend-screen group-hover:opacity-100 group-hover:mix-blend-normal transition-all duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-4">
+                    <div className="text-[9px] text-pink-300 font-medium tracking-widest mb-1 uppercase">置顶</div>
+                    <h3 className="text-sm font-light text-white truncate tracking-wide">示例大作 {i}</h3>
+                    <p className="text-[10px] text-glass-muted mt-1 font-light">官方作品</p>
+                  </div>
+                </div>
+             ))}
+          </div>
+        </section>
+
       </main>
+
+      {isModalOpen && (
+        <CreateProjectModal onClose={() => setIsModalOpen(false)} />
+      )}
     </div>
   );
 }
