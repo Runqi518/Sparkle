@@ -112,7 +112,7 @@ async function fallbackMockGeneration(taskId: string, type: string, projectId?: 
     } else if (type === "image") {
       resultUrl = `https://picsum.photos/seed/${taskId}/400/225`;
     } else {
-      resultUrl = "text_generated";
+      resultUrl = `【AI 自动生成脚本】\n画面：深色科技背景，粉色粒子飘散\n文案：创意无界，增长有形 (Boundless ideas. Tangible results.)\n配乐：赛博朋克节奏\n(TaskID: ${taskId.slice(-4)})`;
     }
     await GenerationJob.update({ status: "success", resultUrl }, { where: { id: taskId } });
     if (projectId) await updateNodeResult(projectId, taskId, resultUrl);
