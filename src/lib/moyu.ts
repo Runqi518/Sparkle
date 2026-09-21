@@ -3,6 +3,10 @@ export class MoyuClient {
     return process.env.MOYU_API_KEY || "";
   }
 
+  static get imageApiKey() {
+    return process.env.MOYU_IMAGE_API_KEY || this.apiKey;
+  }
+
   static get baseUrl() {
     return "https://www.moyu.info/v1";
   }
@@ -31,7 +35,7 @@ export class MoyuClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.apiKey}`
+        "Authorization": `Bearer ${this.imageApiKey}`
       },
       body: JSON.stringify({
         model: "gemini-3-pro-image-preview",
