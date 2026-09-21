@@ -5,7 +5,7 @@
 Sparkle 是一款面向未来的 AI 创意素材工作流引擎。它将极客美学与前沿 AI 生成能力完美融合，通过无限节点画布，帮助创作者和商业团队将一个灵感（Idea）迅速扩展、编排并转化为可变现的视觉与视频资产（Asset）。
 
 <div align="center">
-  <img src="./public/hero.png?v=2" alt="Sparkle Hero UI" width="100%" />
+  <img src="./public/hero-v2.png" alt="Sparkle Hero UI" width="100%" />
 </div>
 
 ## 🌟 核心特性 (Key Features)
