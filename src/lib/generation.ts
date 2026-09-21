@@ -1,8 +1,7 @@
 import { GenerationRequest, GenerationTask } from "../../schemas/task";
 import { updateNodeResult } from "@/lib/projects";
 import { GenerationJob, User, syncDatabase } from "./db";
-import { ComfyUIDispatcher } from "./comfy/client";
-import { getSDXLWorkflow } from "./comfy/workflow";
+import { MoyuClient } from "./moyu";
 
 // ----------------- API Services -----------------
 
@@ -17,7 +16,6 @@ export async function getUserPoints(): Promise<number> {
 export async function createGenerationTask(req: GenerationRequest): Promise<GenerationTask> {
   await syncDatabase();
   
-  // 真实逻辑：扣减积分 (用事务保证原子性)
   const cost = 10;
   const user = await User.findByPk('default_user');
   const points = user ? (user.toJSON() as any).points : 0;
@@ -42,8 +40,8 @@ export async function createGenerationTask(req: GenerationRequest): Promise<Gene
 
   const job = await GenerationJob.create(newTaskData);
 
-  // 触发真实的 ComfyUI 调度队列机制
-  dispatchToComfyUI(taskId, req.prompt, req.type, req.projectId);
+  // 触发真实的 Moyu (魔芋) API 调度
+  dispatchToMoyu(taskId, req.prompt, req.type, req.projectId);
 
   const jobData = job.toJSON() as any;
   return {
@@ -64,46 +62,66 @@ export async function getTaskStatus(taskId: string): Promise<GenerationTask | nu
   } as GenerationTask;
 }
 
-// ----------------- 独立后台模型队列机制 (ComfyUI) -----------------
-async function dispatchToComfyUI(taskId: string, prompt: string, type: string, projectId?: string) {
+// ----------------- 真实的大模型分发与调度 -----------------
+async function dispatchToMoyu(taskId: string, prompt: string, type: string, projectId?: string) {
   try {
-    await GenerationJob.update({ status: "processing" }, { where: { id: taskId } });
-
-    // 1. 构造 ComfyUI 节点 API 请求
-    // 实际生产中可以根据 type (image/video) 载入不同的 workflow
-    const workflow = getSDXLWorkflow(prompt || "a beautiful futuristic city");
-    
-    // 2. 发送到 GPU 服务器 (或者本地的 ComfyUI)
-    let promptId = "";
-    try {
-      promptId = await ComfyUIDispatcher.submitTask(workflow);
-    } catch (e) {
-      console.warn("ComfyUI 未连接，走降级 Mock 逻辑。报错:", e);
-      // fallback to mock if no ComfyUI server is running locally
+    if (!MoyuClient.apiKey) {
+      console.warn("未配置 MOYU_API_KEY 环境变量，走降级 Mock 逻辑");
       return fallbackMockGeneration(taskId, type, projectId);
     }
 
-    // 3. 启动后台自旋轮询（真实环境应用队列如 BullMQ 处理）
-    const pollInterval = setInterval(async () => {
-      const result = await ComfyUIDispatcher.getTaskResult(promptId);
+    await GenerationJob.update({ status: "processing" }, { where: { id: taskId } });
+
+    // 智能解析上下文中的图片 URL (图生视频场景)
+    let imageUrl = undefined;
+    let textPrompt = prompt;
+    const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      imageUrl = urlMatch[0];
+      textPrompt = prompt.replace(imageUrl, '').trim() || "让画面动起来，平滑过渡"; // 默认填补缺失提示词
+    }
+
+    // 根据不同节点类型进行智能路由
+    if (type === "text") {
+      // 文本生成 (同步返回)
+      const resultText = await MoyuClient.generateText(textPrompt);
+      await GenerationJob.update({ status: "success", resultUrl: resultText }, { where: { id: taskId } });
+      if (projectId) await updateNodeResult(projectId, taskId, resultText);
       
-      if (result.status === 'success' && result.imageUrl) {
-        clearInterval(pollInterval);
-        await GenerationJob.update({ status: "success", resultUrl: result.imageUrl }, { where: { id: taskId } });
-        if (projectId) await updateNodeResult(projectId, taskId, result.imageUrl);
-      } else if (result.status === 'failed') {
-        clearInterval(pollInterval);
-        await GenerationJob.update({ status: "failed" }, { where: { id: taskId } });
-      }
-    }, 2000); // 每2秒轮询一次显卡出图结果
+    } else if (type === "image") {
+      // 图像生成 (同步返回)
+      const resultImageUrl = await MoyuClient.generateImage(textPrompt);
+      await GenerationJob.update({ status: "success", resultUrl: resultImageUrl }, { where: { id: taskId } });
+      if (projectId) await updateNodeResult(projectId, taskId, resultImageUrl);
+
+    } else if (type === "video") {
+      // 视频生成 (异步提交 + 轮询)
+      const moyuTaskId = await MoyuClient.submitVideoTask(textPrompt, imageUrl);
+      
+      const pollInterval = setInterval(async () => {
+        try {
+          const result = await MoyuClient.pollVideoTask(moyuTaskId);
+          if (result.status === 'success' && result.url) {
+            clearInterval(pollInterval);
+            await GenerationJob.update({ status: "success", resultUrl: result.url }, { where: { id: taskId } });
+            if (projectId) await updateNodeResult(projectId, taskId, result.url);
+          } else if (result.status === 'failed') {
+            clearInterval(pollInterval);
+            await GenerationJob.update({ status: "failed" }, { where: { id: taskId } });
+          }
+        } catch (e) {
+          console.error("轮询视频状态异常:", e);
+        }
+      }, 3000); // 豆包视频比较久，每 3 秒查一次
+    }
 
   } catch (err) {
-    console.error("生成分发失败:", err);
+    console.error("Moyu API 调用失败:", err);
     await GenerationJob.update({ status: "failed" }, { where: { id: taskId } });
   }
 }
 
-// 开发没启动 ComfyUI 时的降级处理
+// 开发没启动环境变量时的降级处理
 async function fallbackMockGeneration(taskId: string, type: string, projectId?: string) {
   setTimeout(async () => {
     let resultUrl = "";
