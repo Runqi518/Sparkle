@@ -127,7 +127,7 @@ export default function HomePage() {
 
           {/* Bottom: Titles and Steps (Enlarged Title) */}
           <div className="pb-12 px-12 relative z-10 flex-shrink-0 flex justify-between items-end">
-            <div>
+            <div className="flex flex-col items-start">
               <h1 
                 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-pink-100 tracking-widest mb-4 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] glitch-wrapper"
                 data-text="AI 创意素材工坊"
