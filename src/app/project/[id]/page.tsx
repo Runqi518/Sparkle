@@ -18,6 +18,7 @@ import { Box, FileText, Image as ImageIcon, Plus, Save, Sparkles, Video, Chevron
 import "@xyflow/react/dist/style.css";
 import { TopNav } from "@/components/TopNav";
 import { CustomNode } from "@/components/canvas/CustomNode";
+import Link from "next/link";
 
 const nodeTypes = { custom: CustomNode };
 
