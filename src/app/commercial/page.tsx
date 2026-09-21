@@ -62,7 +62,7 @@ export default function CommercialPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white tracking-wide mb-2">商业化中心</h1>
           <p className="text-sm text-glass-muted font-light">
-            从营销标的出发，让每一份创意都直接对接生意：生成素材 → 匹配标的 → 模板复用
+            让每一份创意都直接对接生意：生成素材 · 匹配标的 · 模板复用
           </p>
         </div>
 
