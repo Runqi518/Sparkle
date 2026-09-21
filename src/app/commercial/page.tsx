@@ -66,46 +66,58 @@ export default function CommercialPage() {
           </p>
         </div>
 
-        {/* 概览统计 */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        {/* 概览统计（紧凑版，无图标） */}
+        <div className="grid grid-cols-4 gap-3 mb-10 max-w-2xl">
           {[
-            { label: "营销标的", value: subjects.length, icon: Package },
-            { label: "挂接素材", value: 12, icon: Link2 },
-            { label: "可复用模板", value: MOCK_TEMPLATES.length, icon: LayoutTemplate },
-            { label: "累计回流数据", value: "—", icon: Sparkles },
+            { label: "营销标的", value: subjects.length },
+            { label: "挂接素材", value: 12 },
+            { label: "可复用模板", value: MOCK_TEMPLATES.length },
+            { label: "累计回流数据", value: "—" },
           ].map((s) => (
-            <div key={s.label} className="glass-black rounded-2xl px-5 py-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl glass-silver flex items-center justify-center">
-                <s.icon className="w-5 h-5 text-white/70" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">{s.value}</div>
-                <div className="text-[11px] text-glass-muted tracking-wider">{s.label}</div>
-              </div>
+            <div key={s.label} className="glass-black rounded-xl px-4 py-2.5 flex items-baseline gap-2">
+              <span className="text-lg font-semibold text-white">{s.value}</span>
+              <span className="text-[10px] text-glass-muted tracking-wider">{s.label}</span>
             </div>
           ))}
         </div>
 
-        {/* Tab 切换 */}
-        <div className="flex gap-2 mb-6 border-b border-white/10 pb-4">
+        {/* Tab 切换 - 三条商业化链路（居中 + 图标 + 玫红提亮） */}
+        <div className="flex justify-center gap-4 mb-10">
           {[
-            { key: "subjects", label: "营销标的", hint: "链路一 · 需求驱动" },
-            { key: "match", label: "素材找货", hint: "链路二 · 内容先行" },
-            { key: "market", label: "模板市场", hint: "链路三 · 模板流通" },
-          ].map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key as any)}
-              className={`px-5 py-2.5 rounded-xl text-sm transition-all ${
-                activeTab === t.key
-                  ? "glass-silver text-white font-medium"
-                  : "text-glass-muted hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {t.label}
-              <span className="ml-2 text-[10px] opacity-60">{t.hint}</span>
-            </button>
-          ))}
+            { key: "subjects", label: "营销标的", hint: "链路一 · 需求驱动", icon: Package },
+            { key: "match", label: "素材找货", hint: "链路二 · 内容先行", icon: Link2 },
+            { key: "market", label: "模板市场", hint: "链路三 · 模板流通", icon: LayoutTemplate },
+          ].map((t) => {
+            const isActive = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key as any)}
+                className={`relative flex flex-col items-center gap-1.5 px-10 py-4 rounded-2xl border transition-all duration-300 ${
+                  isActive
+                    ? "bg-gradient-to-b from-pink-500/20 to-purple-600/10 border-pink-500/50 shadow-[0_0_35px_rgba(236,72,153,0.25)] scale-105"
+                    : "border-white/5 bg-white/[0.02] hover:bg-white/5 hover:border-white/15"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <t.icon className={`w-5 h-5 transition-colors ${isActive ? "text-pink-300" : "text-white/40"}`} />
+                  <span className={`text-base font-semibold tracking-wide ${
+                    isActive
+                      ? "bg-gradient-to-r from-pink-200 to-pink-400 bg-clip-text text-transparent"
+                      : "text-white/70"
+                  }`}>
+                    {t.label}
+                  </span>
+                </div>
+                <span className={`text-[10px] tracking-wider ${isActive ? "text-pink-300/80" : "text-white/30"}`}>
+                  {t.hint}
+                </span>
+                {isActive && (
+                  <div className="absolute -bottom-[1px] left-1/2 -translate-x-1/2 w-16 h-[2px] bg-gradient-to-r from-pink-400 to-purple-400 rounded-full" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* ===== Tab 1: 营销标的 ===== */}
