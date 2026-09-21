@@ -104,6 +104,11 @@ export async function getProjects(): Promise<ProjectResponse[]> {
   return projects.map(p => p.toJSON()) as ProjectResponse[];
 }
 
+export async function deleteProject(id: string) {
+  await syncDatabase();
+  await Project.destroy({ where: { id } });
+}
+
 export async function saveCanvas(id: string, canvas: CanvasSnapshot) {
   await syncDatabase();
   const project = await Project.findByPk(id);

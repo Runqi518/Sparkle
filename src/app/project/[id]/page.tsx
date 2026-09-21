@@ -45,13 +45,13 @@ function Canvas() {
         setError(data.error || "无法加载项目");
         return;
       }
-      const canvasNodes = data.project.canvas.nodes.map((node: Node) => ({
+      const canvasNodes = (data.project?.canvas?.nodes || []).map((node: Node) => ({
         ...node,
         data: { ...node.data, projectId: data.project.id },
       }));
       setProject(data.project);
       setNodes(canvasNodes);
-      setEdges(data.project.canvas.edges);
+      setEdges(data.project?.canvas?.edges || []);
     })();
   }, [id, setEdges, setNodes]);
 

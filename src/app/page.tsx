@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, LayoutGrid, Type, Image as ImageIcon, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, ChevronLeft, ChevronRight, LayoutGrid, Type, Video, TrendingUp, Trash2 } from "lucide-react";
 import { TopNav } from "@/components/TopNav";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
+import { FluidParticleText } from "@/components/FluidParticleText";
 import Link from "next/link";
+import { ProjectResponse } from "../../schemas/project";
 
 const FILTERS = ["全部", "全行业", "教育培训", "3c及电器", "互联网", "美妆", "母婴", "宠物"];
 
 const CAROUSEL_ITEMS = [
   { id: 'idea', label: 'Idea', icon: Type, color: 'text-white/80', gradient: 'from-white/10' },
-  { id: 'asset', label: 'Asset', icon: ImageIcon, color: 'text-white/90', gradient: 'from-pink-500/10' },
+  { id: 'asset', label: 'Asset', icon: Video, color: 'text-white/90', gradient: 'from-pink-500/10' },
   { id: 'growth', label: 'Growth', icon: TrendingUp, color: 'text-pink-300/90', gradient: 'from-pink-400/10' }
 ];
 
@@ -18,6 +20,30 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("全部");
   const [centerIndex, setCenterIndex] = useState(1);
+  const [projects, setProjects] = useState<ProjectResponse[]>([]);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch("/api/projects");
+      const data = await res.json();
+      if (data.projects) setProjects(data.projects);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm("确定要删除这个项目吗？")) {
+      try {
+        await fetch(`/api/projects/${id}`, { method: "DELETE" });
+        fetchProjects();
+      } catch (e) {}
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-transparent">
@@ -102,8 +128,13 @@ export default function HomePage() {
           {/* Bottom: Titles and Steps (Enlarged Title) */}
           <div className="pb-12 px-12 relative z-10 flex-shrink-0 flex justify-between items-end">
             <div>
-              <h1 className="text-6xl font-light text-white tracking-widest mb-4 drop-shadow-2xl">AI 创意素材画布</h1>
-              <h2 className="text-2xl text-white/60 font-light tracking-[0.2em] mb-6">Boundless ideas. Tangible results.</h2>
+              <h1 
+                className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-pink-100 tracking-widest mb-4 filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] glitch-wrapper"
+                data-text="AI 创意素材工坊"
+              >
+                AI 创意素材工坊
+              </h1>
+              <FluidParticleText />
               
               <div className="space-y-2 text-[11px] text-white/40 font-light tracking-widest">
                 <p>一句话，生成图文与视频素材</p>
@@ -113,13 +144,13 @@ export default function HomePage() {
             </div>
             
             {/* 3 steps bar (Gradient Text) */}
-            <div className="flex items-center gap-5 text-[11px] font-light tracking-[0.3em] bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-white/10 shadow-lg relative overflow-hidden group">
+            <div className="flex items-center gap-4 text-[11px] font-light tracking-[0.25em] bg-black/40 backdrop-blur-xl pl-6 pr-8 py-3 rounded-full border border-white/10 shadow-lg relative overflow-hidden group whitespace-nowrap">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               
-              <span className="text-white/80 pl-1 relative z-10">生成</span>
-              <span className="w-4 h-px bg-white/20 relative z-10"></span>
+              <span className="text-white/80 relative z-10 pl-1">生成</span>
+              <span className="text-white/30 relative z-10 font-mono tracking-normal opacity-80">{"->"}</span>
               <span className="text-pink-100/90 relative z-10">编排</span>
-              <span className="w-4 h-px bg-pink-300/30 relative z-10"></span>
+              <span className="text-pink-300/40 relative z-10 font-mono tracking-normal opacity-80">{"->"}</span>
               <span className="bg-gradient-to-r from-pink-50 to-pink-200 bg-clip-text text-transparent font-medium pr-1 relative z-10">变现</span>
             </div>
           </div>
@@ -142,16 +173,27 @@ export default function HomePage() {
               </div>
             </div>
 
-            <Link href="/project/1" className="w-56 h-36 glass-black glass-hover rounded-2xl flex flex-col p-4 relative group overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10" />
-              <div className="flex-1 flex justify-center items-center z-10">
-                <LayoutGrid className="w-7 h-7 text-white/40 group-hover:text-white/80 transition-colors" />
-              </div>
-              <div className="flex justify-between items-center text-[10px] mt-3 z-10">
-                <span className="px-2 py-1 glass-silver rounded font-medium tracking-wider">宠物</span>
-                <span className="text-glass-muted">2026/09/20</span>
-              </div>
-            </Link>
+            {projects.map(p => (
+              <Link key={p.id} href={`/project/${p.id}`} className="w-56 h-36 glass-black glass-hover rounded-2xl flex flex-col p-4 relative group overflow-hidden">
+                <button 
+                  onClick={(e) => handleDelete(e, p.id)}
+                  className="absolute top-3 right-3 z-20 w-6 h-6 rounded-full bg-black/50 text-white/50 opacity-0 group-hover:opacity-100 hover:text-pink-400 hover:bg-pink-500/20 transition-all flex items-center justify-center border border-white/10"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+                <div className="flex-1 flex justify-center items-center z-10 pointer-events-none">
+                  <LayoutGrid className="w-7 h-7 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+                <div className="flex justify-between items-center text-[10px] mt-3 z-10 pointer-events-none">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium tracking-wide text-white/90">{p.name}</span>
+                    <span className="text-glass-muted">{new Date(p.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <span className="px-2 py-1 glass-silver rounded font-medium tracking-wider">{p.industry}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
 

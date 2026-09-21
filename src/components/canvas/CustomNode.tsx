@@ -75,7 +75,7 @@ export const CustomNode = ({ id, data }: NodeProps) => {
             className="w-full glass-pink text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-pink-500/30 font-medium tracking-wider"
           >
             <Play className="w-3.5 h-3.5" />
-            开始生成 (-10积分)
+            开始生成
           </button>
         </div>
       )}

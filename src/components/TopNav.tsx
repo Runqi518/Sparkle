@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, LayoutTemplate, Lightbulb, Box } from "lucide-react";
+import { Lightbulb, Box, BadgeDollarSign } from "lucide-react";
 
 export function TopNav({ 
   leftContent 
@@ -11,25 +11,11 @@ export function TopNav({
   leftContent?: React.ReactNode 
 }) {
   const pathname = usePathname();
-  const [points, setPoints] = useState(40);
-
-  useEffect(() => {
-    const fetchPoints = async () => {
-      try {
-        const res = await fetch("/api/user/points");
-        const data = await res.json();
-        setPoints(data.points);
-      } catch (e) {}
-    };
-    fetchPoints();
-    window.addEventListener("points-updated", fetchPoints);
-    return () => window.removeEventListener("points-updated", fetchPoints);
-  }, []);
 
   const navItems = [
-    { label: "画布", href: "/", icon: LayoutTemplate },
-    { label: "创意", href: "/ideas", icon: Lightbulb },
+    { label: "创意", href: "/", icon: Lightbulb },
     { label: "素材", href: "/assets", icon: Box },
+    { label: "商业", href: "/commercial", icon: BadgeDollarSign },
   ];
 
   return (
@@ -71,12 +57,8 @@ export function TopNav({
           })}
         </div>
 
-        {/* Points & Avatar */}
+        {/* Avatar */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 text-pink-300 font-semibold text-xs bg-pink-500/10 px-2.5 py-1 rounded-full border border-pink-500/20 backdrop-blur-sm">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            {points}
-          </div>
           <div className="w-8 h-8 rounded-full border border-white/30 overflow-hidden shadow-[0_0_10px_rgba(255,255,255,0.2)]">
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" className="w-full h-full object-cover bg-white/10 backdrop-blur" />
           </div>

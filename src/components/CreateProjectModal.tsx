@@ -145,9 +145,6 @@ export function CreateProjectModal({ onClose }: { onClose: () => void }) {
 
                      <div className="flex items-center gap-5 ml-6">
                        <SelectBox label="1个" options={["1个", "2个", "4个"]} />
-                       <div className="flex items-center gap-1.5 text-pink-300 font-medium bg-pink-500/10 px-3 py-1.5 rounded-lg border border-pink-500/20 text-xs">
-                         <Zap className="w-3.5 h-3.5 fill-current" /> 1
-                       </div>
                        <button onClick={handleCreate} className="px-6 py-2.5 glass-pink text-white font-medium rounded-xl text-sm tracking-widest flex items-center gap-2 hover:bg-pink-500/30 transition-colors shadow-lg">
                          <Sparkles className="w-4 h-4" /> 创作
                        </button>
