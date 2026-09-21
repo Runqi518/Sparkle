@@ -25,7 +25,7 @@ export function TopNav({
           <div className="w-5 h-5 rounded glass-pink flex items-center justify-center font-bold text-[10px] group-hover:scale-110 transition-transform">
             S
           </div>
-          <span className="font-bold text-base tracking-wide text-white">Sparkle</span>
+          <span className="font-bold text-base tracking-wide text-white group-hover:text-pink-300 transition-colors">Sparkle</span>
           {pathname === "/" && <span className="text-[10px] text-glass-muted ml-1 font-medium tracking-widest uppercase">From Prompt to Profit.</span>}
         </Link>
         

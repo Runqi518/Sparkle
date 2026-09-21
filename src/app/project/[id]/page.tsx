@@ -14,7 +14,7 @@ import {
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { Box, FileText, Image as ImageIcon, Plus, Save, Sparkles, Video } from "lucide-react";
+import { Box, FileText, Image as ImageIcon, Plus, Save, Sparkles, Video, ChevronLeft } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import { TopNav } from "@/components/TopNav";
 import { CustomNode } from "@/components/canvas/CustomNode";
@@ -134,8 +134,17 @@ export default function ProjectCanvasPage() {
 function ProjectTitle() {
   return (
     <div className="flex items-center gap-3 text-xs border-l border-white/10 pl-4 font-light text-white/80">
-      <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/10"><Box className="w-3 h-3 text-glass-muted" /><span>项目画布</span></div>
-      <span className="text-glass-muted text-[10px] tracking-wider flex items-center gap-1"><Sparkles className="w-3 h-3" /> 自动保存</span>
+      <Link href="/" className="flex items-center gap-1 hover:text-white text-glass-muted transition-colors group">
+        <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+        返回工坊
+      </Link>
+      <div className="w-px h-3 bg-white/10"></div>
+      <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
+        <Box className="w-3 h-3 text-glass-muted" /><span>项目画布</span>
+      </div>
+      <span className="text-glass-muted text-[10px] tracking-wider flex items-center gap-1">
+        <Sparkles className="w-3 h-3 text-pink-500/50" /> 自动保存
+      </span>
     </div>
   );
 }
