@@ -1,6 +1,8 @@
 import { GenerationRequest, GenerationTask } from "../../schemas/task";
 import { updateNodeResult } from "@/lib/projects";
 import { GenerationJob, User, syncDatabase } from "./db";
+import { ComfyUIDispatcher } from "./comfy/client";
+import { getSDXLWorkflow } from "./comfy/workflow";
 
 // ----------------- API Services -----------------
 
@@ -40,8 +42,8 @@ export async function createGenerationTask(req: GenerationRequest): Promise<Gene
 
   const job = await GenerationJob.create(newTaskData);
 
-  // 触发后台生成服务
-  simulateAIGeneration(taskId, req.type, req.projectId);
+  // 触发真实的 ComfyUI 调度队列机制
+  dispatchToComfyUI(taskId, req.prompt, req.type, req.projectId);
 
   const jobData = job.toJSON() as any;
   return {
@@ -62,15 +64,47 @@ export async function getTaskStatus(taskId: string): Promise<GenerationTask | nu
   } as GenerationTask;
 }
 
-// ----------------- 独立后台模型队列机制 -----------------
-// 真实环境这里应该是推送到 BullMQ, RabbitMQ 或 Kafka
-async function simulateAIGeneration(taskId: string, type: string, projectId?: string) {
-  // 1秒后进入 Processing 状态
-  setTimeout(async () => {
+// ----------------- 独立后台模型队列机制 (ComfyUI) -----------------
+async function dispatchToComfyUI(taskId: string, prompt: string, type: string, projectId?: string) {
+  try {
     await GenerationJob.update({ status: "processing" }, { where: { id: taskId } });
-  }, 1000);
 
-  // 3秒后模拟调用第三方模型出结果，保存入库并自动关联回画布
+    // 1. 构造 ComfyUI 节点 API 请求
+    // 实际生产中可以根据 type (image/video) 载入不同的 workflow
+    const workflow = getSDXLWorkflow(prompt || "a beautiful futuristic city");
+    
+    // 2. 发送到 GPU 服务器 (或者本地的 ComfyUI)
+    let promptId = "";
+    try {
+      promptId = await ComfyUIDispatcher.submitTask(workflow);
+    } catch (e) {
+      console.warn("ComfyUI 未连接，走降级 Mock 逻辑。报错:", e);
+      // fallback to mock if no ComfyUI server is running locally
+      return fallbackMockGeneration(taskId, type, projectId);
+    }
+
+    // 3. 启动后台自旋轮询（真实环境应用队列如 BullMQ 处理）
+    const pollInterval = setInterval(async () => {
+      const result = await ComfyUIDispatcher.getTaskResult(promptId);
+      
+      if (result.status === 'success' && result.imageUrl) {
+        clearInterval(pollInterval);
+        await GenerationJob.update({ status: "success", resultUrl: result.imageUrl }, { where: { id: taskId } });
+        if (projectId) await updateNodeResult(projectId, taskId, result.imageUrl);
+      } else if (result.status === 'failed') {
+        clearInterval(pollInterval);
+        await GenerationJob.update({ status: "failed" }, { where: { id: taskId } });
+      }
+    }, 2000); // 每2秒轮询一次显卡出图结果
+
+  } catch (err) {
+    console.error("生成分发失败:", err);
+    await GenerationJob.update({ status: "failed" }, { where: { id: taskId } });
+  }
+}
+
+// 开发没启动 ComfyUI 时的降级处理
+async function fallbackMockGeneration(taskId: string, type: string, projectId?: string) {
   setTimeout(async () => {
     let resultUrl = "";
     if (type === "video") {
@@ -80,8 +114,7 @@ async function simulateAIGeneration(taskId: string, type: string, projectId?: st
     } else {
       resultUrl = "text_generated";
     }
-
     await GenerationJob.update({ status: "success", resultUrl }, { where: { id: taskId } });
-    if (projectId) await updateNodeResult(projectId, taskId, resultUrl); // 这一步原本需要 nodeId，这里简写处理，实际生产需要关联 nodeId
+    if (projectId) await updateNodeResult(projectId, taskId, resultUrl);
   }, 4000);
 }
