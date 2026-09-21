@@ -1,3 +1,6 @@
+import { writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
+
 export class MoyuClient {
   static get apiKey() {
     return process.env.MOYU_API_KEY || "";
@@ -29,22 +32,49 @@ export class MoyuClient {
     return data.choices[0].message.content;
   }
 
-  // 2. 图像生成 (gemini-3-pro-image-preview)
+  // 2. 图像生成 (接入豆包 Seedream 图生图/文生图)
   static async generateImage(prompt: string): Promise<string> {
+    
+    // 如果 prompt 里包含图片 URL，自动触发图生图逻辑
+    let imageUrl = undefined;
+    let textPrompt = prompt;
+    const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      imageUrl = urlMatch[0];
+      textPrompt = prompt.replace(imageUrl, '').trim() || "融合图片风格";
+    }
+
+    const payload: any = {
+      model: "doubao-seedream-5-0-260128", // 推荐的 5.0 模型
+      prompt: textPrompt,
+      size: "2K",
+      output_format: "png",
+      response_format: "url" // Seedream 默认支持直接返回 URL，非常方便
+    };
+
+    // 智能挂载参考图
+    if (imageUrl) {
+      payload.image = imageUrl;
+    }
+
     const res = await fetch(`${this.baseUrl}/images/generations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${this.imageApiKey}`
       },
-      body: JSON.stringify({
-        model: "gemini-3-pro-image-preview",
-        prompt: prompt
-      })
+      body: JSON.stringify(payload)
     });
+    
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    return data.data[0].url;
+    
+    // Seedream 直接返回 CDN 链接
+    if (data.data && data.data[0] && data.data[0].url) {
+      return data.data[0].url;
+    }
+    
+    throw new Error("图片生成响应格式异常");
   }
 
   // 3. 视频任务提交
