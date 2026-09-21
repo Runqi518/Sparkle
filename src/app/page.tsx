@@ -20,7 +20,17 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("全部");
   const [centerIndex, setCenterIndex] = useState(1);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
   const [projects, setProjects] = useState<ProjectResponse[]>([]);
+
+  // 轮播自动播放，悬停时暂停
+  useEffect(() => {
+    if (isCarouselPaused) return;
+    const timer = setInterval(() => {
+      setCenterIndex((prev) => (prev + 1) % CAROUSEL_ITEMS.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isCarouselPaused]);
 
   const fetchProjects = async () => {
     try {
@@ -75,7 +85,11 @@ export default function HomePage() {
 
           {/* Middle: Main Visual Flow (Shrunk) */}
           <div className="flex-1 flex items-center justify-center relative z-10 w-full px-10 mt-4">
-            <div className="w-full max-w-2xl h-40 relative flex justify-center items-center perspective-1000">
+            <div
+              className="w-full max-w-2xl h-40 relative flex justify-center items-center perspective-1000"
+              onMouseEnter={() => setIsCarouselPaused(true)}
+              onMouseLeave={() => setIsCarouselPaused(false)}
+            >
                
                {/* Connecting track background */}
                <div className="absolute left-[15%] right-[15%] top-1/2 -translate-y-1/2 border-t border-dashed border-white/10 z-0" />
