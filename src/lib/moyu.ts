@@ -43,10 +43,10 @@ export class MoyuClient {
     return data.data[0].url;
   }
 
-  // 3. 视频任务提交 (Seedance2.0)
+  // 3. 视频任务提交
   static async submitVideoTask(prompt: string, imageUrl?: string): Promise<string> {
     const payload: any = {
-      model: "Seedance2.0",
+      model: "doubao-seedance-2-0-260128", // 根据网关实际可用的真实模型 ID 替换
       prompt: prompt,
       duration: 5,
       generate_audio: false

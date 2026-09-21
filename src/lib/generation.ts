@@ -83,16 +83,26 @@ async function dispatchToMoyu(taskId: string, prompt: string, type: string, proj
 
     // 根据不同节点类型进行智能路由
     if (type === "text") {
-      // 文本生成 (同步返回)
-      const resultText = await MoyuClient.generateText(textPrompt);
-      await GenerationJob.update({ status: "success", resultUrl: resultText }, { where: { id: taskId } });
-      if (projectId) await updateNodeResult(projectId, taskId, resultText);
+      // 当前魔芋的分组下没有可用的文本模型，暂时降级为 mock (避免 503 报错)
+      try {
+        const resultText = await MoyuClient.generateText(textPrompt);
+        await GenerationJob.update({ status: "success", resultUrl: resultText }, { where: { id: taskId } });
+        if (projectId) await updateNodeResult(projectId, taskId, resultText);
+      } catch (e) {
+        console.warn("文本模型未配置，降级 mock", e);
+        return fallbackMockGeneration(taskId, type, projectId);
+      }
       
     } else if (type === "image") {
-      // 图像生成 (同步返回)
-      const resultImageUrl = await MoyuClient.generateImage(textPrompt);
-      await GenerationJob.update({ status: "success", resultUrl: resultImageUrl }, { where: { id: taskId } });
-      if (projectId) await updateNodeResult(projectId, taskId, resultImageUrl);
+      // 当前魔芋的分组下没有可用的生图模型，暂时降级为 mock
+      try {
+        const resultImageUrl = await MoyuClient.generateImage(textPrompt);
+        await GenerationJob.update({ status: "success", resultUrl: resultImageUrl }, { where: { id: taskId } });
+        if (projectId) await updateNodeResult(projectId, taskId, resultImageUrl);
+      } catch (e) {
+        console.warn("生图模型未配置，降级 mock", e);
+        return fallbackMockGeneration(taskId, type, projectId);
+      }
 
     } else if (type === "video") {
       // 视频生成 (异步提交 + 轮询)
